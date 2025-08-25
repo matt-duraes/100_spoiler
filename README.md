@@ -1,6 +1,6 @@
-## Em desenvolvimento — Última atualização em 24/08/2025 às 22h11
+#### Em desenvolvimento — Última atualização em 24/08/2025 às 22h11
 
-# 100Spoiler - Transforme sua vida literária
+# 100Spoiler 
 
 O 100Spoiler é um sistema moderno e elegante criado para transformar sua vida literária. Com ele, você pode adicionar amigos, recomendar leituras, registrar os livros já concluídos e aqueles que ainda deseja ler. Além disso, organize sua biblioteca pessoal com filtros inteligentes, acompanhe o progresso, participe de competições divertidas com seus amigos e faça parte de uma comunidade apaixonada por livros...
 
@@ -14,19 +14,18 @@ O 100Spoiler é um sistema moderno e elegante criado para transformar sua vida l
 - ✅ Interface responsiva e moderna
 - ✅ Sistema de capas com fallback automático
 
-
 ## Ideias / Roadmap
 
-   - Integração integração com a API que está em desenvolvimento.
-   - Sistema de login e buscar de livros por usuários.
-   - Tela de indicação de livros
-   - Modo escuro com persistência em localStorage.
-   - Adicionar o Status: 'lendo'
-   - Perfil de usuário com conquistas
-   - Filtros (Mês/ano/autor)
-   - Criação de pastas para agrupar livros
-   - Funcionalidade de adicionar amigos
-   - Testes de componentes com React Testing Library.
+   - [ ] Integração integração com a API que está em desenvolvimento.
+   - [ ] Sistema de login e buscar de livros por usuários.
+   - [ ] Tela de indicação de livros
+   - [ ] Modo escuro com persistência em localStorage.
+   - [ ] Adicionar o Status: 'lendo'
+   - [ ] Perfil de usuário com conquistas
+   - [ ] Filtros (Mês/ano/autor)
+   - [ ] Criação de pastas para agrupar livros
+   - [ ] Funcionalidade de adicionar amigos
+   - [ ] Testes de componentes com React Testing Library.
 
 ## 🚀 Como executar
 
