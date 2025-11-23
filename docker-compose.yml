@@ -16,9 +16,8 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
     volumes:
-      # Persistir banco de dados SQLite
-      - ./server/data:/app/data
-      - ./server/database.sqlite:/app/database.sqlite
+      # Persistir banco de dados SQLite - montar diretório ao invés de arquivo
+      - sqlite-data:/app
     networks:
       - app-network
     healthcheck:
@@ -54,4 +53,4 @@ networks:
     driver: bridge
 
 volumes:
-  db-data:
+  sqlite-data:
