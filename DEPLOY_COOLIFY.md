@@ -35,9 +35,10 @@ git push -u origin main
 #### 2.2 Configurar o Backend
 - **Repository URL**: `https://github.com/seu-usuario/100_spoiler`
 - **Branch**: `main`
-- **Root Directory**: `server`
-- **Build Pack**: Node.js
+- **Base Directory**: `server` (importante!)
+- **Build Pack**: **Nixpacks** (detecta Node.js automaticamente)
 - **Port**: `3000`
+- **Install Command**: `npm install` (Nixpacks faz isso automaticamente)
 - **Start Command**: `npm start`
 
 #### 2.3 Variáveis de Ambiente do Backend
@@ -70,11 +71,13 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 #### 3.2 Configurar o Frontend
 - **Repository URL**: `https://github.com/seu-usuario/100_spoiler`
 - **Branch**: `main`
-- **Root Directory**: `/` (raiz do projeto)
-- **Build Pack**: Node.js (Vite)
+- **Base Directory**: `/` (raiz do projeto)
+- **Build Pack**: **Nixpacks** (detecta Vite automaticamente)
+- **Install Command**: `npm install`
 - **Build Command**: `npm run build`
-- **Start Command**: Deixe vazio (Coolify serve arquivos estáticos)
+- **Start Command**: Deixe vazio (Nixpacks serve arquivos estáticos do `dist`)
 - **Publish Directory**: `dist`
+- **Port**: Deixe vazio ou `3000` (Nixpacks configura automaticamente)
 
 #### 3.3 Variáveis de Ambiente do Frontend
 Adicione em **Environment Variables**:
