@@ -1,212 +1,232 @@
-# Deploy com Docker no Coolify
+# Deploy com Docker Compose no Coolify
 
-## 🐳 Visão Geral
+## 🎯 Visão Geral
 
-Sua aplicação agora está **100% dockerizada**! Tudo em um único `docker-compose.yml`.
+Sua aplicação agora usa **1 único Dockerfile** que roda frontend + backend juntos em um container usando Supervisor.
 
-## 📦 O que foi criado
+## 📋 Pré-requisitos
 
-- ✅ `server/Dockerfile` - Imagem do backend
-- ✅ `Dockerfile` - Imagem do frontend (multi-stage build)
-- ✅ `nginx.conf` - Configuração do Nginx para SPA
-- ✅ `docker-compose.yml` - Orquestração completa
-- ✅ `.env.docker` - Template de variáveis de ambiente
+- ✅ Código no GitHub
+- ✅ Coolify instalado na VPS
+- ✅ Acesso ao painel do Coolify
 
-## 🚀 Deploy no Coolify
+## 🚀 Passo a Passo no Coolify
 
-### Opção 1: Docker Compose (Recomendado - Mais Simples)
+### 1. Criar Novo Recurso
 
-#### 1. Push para GitHub
-```bash
-git add .
-git commit -m "Adicionar Docker setup"
-git push
+1. No Coolify, clique em **"+ New Resource"**
+2. Escolha **"Docker Compose Empty"**
+
+### 2. Configuração Geral
+
+Preencha os campos conforme a imagem:
+
+#### **Name** (Nome)
+```
+100spoiler
 ```
 
-#### 2. No Coolify
-1. Clique em **"+ New Resource"**
-2. Selecione **"Docker Compose"**
-3. Conecte seu repositório GitHub
-4. Configure:
-   - **Repository**: `seu-usuario/100_spoiler`
-   - **Branch**: `main`
-   - **Docker Compose Location**: `docker-compose.yml` (raiz)
+#### **Description** (Descrição - opcional)
+```
+Sistema de biblioteca de livros com spoilers
+```
 
-#### 3. Variáveis de Ambiente
-Adicione em **Environment Variables**:
+#### **Domains** (Domínios)
+```
+http://100spoiler.dev
+```
+ou use seu domínio personalizado
+
+#### **Direction**
+```
+Allow www & non-www
+```
+
+### 3. Build Configuration
+
+#### **Base Directory**
+```
+/
+```
+(raiz do projeto - deixe apenas `/`)
+
+#### **Docker Build Stage Target**
+Deixe **vazio**
+
+#### **Custom Docker Options**
+Deixe **vazio** (ou use o padrão)
+
+#### **Use a Build Server?**
+Deixe **desmarcado**
+
+### 4. Docker Compose
+
+No campo **"Docker Compose file"**, cole o conteúdo do seu `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:3000}
+    container_name: 100spoiler-app
+    restart: unless-stopped
+    expose:
+      - "80"
+      - "3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - JWT_SECRET=${JWT_SECRET}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+    volumes:
+      - sqlite-data:/app/server
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  sqlite-data:
+```
+
+### 5. Environment Variables
+
+Vá em **"Environment Variables"** (menu lateral) e adicione:
 
 ```env
-JWT_SECRET=cole-senha-forte-aqui
-ALLOWED_ORIGINS=https://seu-dominio.com
-VITE_API_URL=https://api.seu-dominio.com
+JWT_SECRET=cole-aqui-senha-forte-gerada
+ALLOWED_ORIGINS=http://100spoiler.dev
+VITE_API_URL=http://localhost:3000
 ```
 
-**Gerar JWT_SECRET:**
+**Para gerar JWT_SECRET seguro:**
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-#### 4. Deploy
-- Clique em **"Deploy"**
-- Coolify vai:
-  - Buildar as imagens
-  - Subir os containers
-  - Configurar networking
-  - Persistir o banco de dados
+### 6. Source (Conectar ao GitHub)
 
-#### 5. Configurar Domínios
-- **Frontend**: `seu-dominio.com` → porta `80`
-- **Backend**: `api.seu-dominio.com` → porta `3000`
+1. Vá em **"Source"** no menu lateral
+2. Conecte ao GitHub
+3. Selecione o repositório: `matt-duraes/100_spoiler`
+4. Branch: `main`
 
-### Opção 2: Duas Aplicações Separadas
+### 7. Deploy
 
-Se preferir mais controle, pode criar 2 aplicações no Coolify:
+1. Clique em **"Save"**
+2. Clique em **"Deploy"**
+3. Aguarde o build completar (pode levar alguns minutos)
 
-#### Backend
-1. **Build Pack**: Docker
-2. **Dockerfile Location**: `server/Dockerfile`
-3. **Port**: `3000`
+## 🌐 Configurar Domínio (Opcional)
 
-#### Frontend
-1. **Build Pack**: Docker
-2. **Dockerfile Location**: `Dockerfile`
-3. **Port**: `80`
+### Depois do Deploy
 
-## 🧪 Testar Localmente
+1. Vá em **"Domains"** no menu lateral
+2. Adicione seu domínio: `100spoiler.dev` ou `seu-dominio.com`
+3. Coolify configurará SSL automaticamente
 
-### 1. Criar arquivo .env
-```bash
-cp .env.docker .env
+### Atualizar CORS
+
+Depois de configurar o domínio, atualize a variável `ALLOWED_ORIGINS`:
+
+```env
+ALLOWED_ORIGINS=https://seu-dominio.com,https://www.seu-dominio.com
 ```
 
-Edite `.env` e adicione suas variáveis.
+E faça **redeploy**.
 
-### 2. Rodar com Docker Compose
-```bash
-# Build e start
-docker-compose up -d
+## 📊 Verificar se Funcionou
 
-# Ver logs
-docker-compose logs -f
+### Logs
+1. Vá em **"Logs"** no menu lateral
+2. Procure por:
+   ```
+   Database synced
+   Server running on http://localhost:3000
+   ```
 
-# Parar
-docker-compose down
+### Healthcheck
+1. Vá em **"Healthcheck"** no menu lateral
+2. Deve mostrar status **"healthy"**
 
-# Rebuild após mudanças
-docker-compose up -d --build
-```
+### Acessar
+- Abra o domínio configurado no navegador
+- Deve carregar a aplicação! 🎉
 
-### 3. Acessar
-- Frontend: http://localhost
-- Backend: http://localhost:3000
+## 🔄 Atualizações Automáticas
 
-## 📊 Persistência de Dados
+### Configurar Webhook
 
-O banco de dados SQLite é persistido em:
-- Volume: `./server/database.sqlite`
-- Mesmo após reiniciar containers, os dados permanecem
+1. Vá em **"Webhooks"** no menu lateral
+2. Copie a **Webhook URL**
+3. No GitHub:
+   - Settings → Webhooks → Add webhook
+   - Cole a URL do Coolify
+   - Selecione eventos: `push`
+   - Save
 
-## 🔄 Atualizações
+Agora cada `git push` fará deploy automático! 🚀
 
-### Deploy Automático no Coolify
-1. Configure webhook no GitHub
-2. Cada `git push` faz rebuild e redeploy automático
-
-### Atualização Manual
-```bash
-# Na VPS com Coolify
-docker-compose pull
-docker-compose up -d --build
-```
-
-## 🎯 Vantagens do Docker
-
-✅ **Portabilidade** - Roda em qualquer lugar
-✅ **Isolamento** - Cada serviço em seu container
-✅ **Fácil rollback** - Voltar para versão anterior
-✅ **Escalabilidade** - Fácil adicionar réplicas
-✅ **Consistência** - Mesmo ambiente dev/prod
-
-## 🔍 Monitoramento
-
-### Ver logs
-```bash
-# Todos os serviços
-docker-compose logs -f
-
-# Apenas backend
-docker-compose logs -f backend
-
-# Apenas frontend
-docker-compose logs -f frontend
-```
-
-### Status dos containers
-```bash
-docker-compose ps
-```
-
-### Recursos utilizados
-```bash
-docker stats
-```
-
-## 🆘 Troubleshooting
+## 🔧 Troubleshooting
 
 ### Build falha
-```bash
-# Limpar cache e rebuildar
-docker-compose build --no-cache
-docker-compose up -d
-```
+- Verifique os logs em **"Logs"**
+- Confirme que as variáveis de ambiente estão corretas
+- Tente **"Force Rebuild"**
+
+### 404 ao acessar
+- Verifique se o container está rodando em **"Metrics"**
+- Verifique os logs do Nginx
+- Confirme que a porta 80 está exposta
+
+### Backend não conecta
+- Verifique `VITE_API_URL` nas variáveis de ambiente
+- Verifique `ALLOWED_ORIGINS` no backend
+- Teste: `curl http://seu-dominio.com:3000/health`
 
 ### Banco de dados não persiste
-Verifique se o volume está configurado:
-```bash
-docker volume ls
-docker volume inspect 100_spoiler_db-data
-```
+- Verifique em **"Persistent Storage"** se o volume está configurado
+- O volume `sqlite-data` deve estar montado em `/app/server`
 
-### Frontend não conecta ao backend
-1. Verifique `VITE_API_URL` no build
-2. Verifique `ALLOWED_ORIGINS` no backend
-3. Teste: `curl http://localhost:3000/health`
+## 💡 Dicas
 
-### Porta já em uso
-Altere as portas no `docker-compose.yml`:
-```yaml
-ports:
-  - "8080:80"  # Frontend na porta 8080
-  - "3001:3000"  # Backend na porta 3001
-```
+### Ver recursos utilizados
+- Vá em **"Metrics"** para ver CPU/RAM/Disco
 
-## 🔒 Segurança
+### Rollback
+- Vá em **"Preview Deployments"** para voltar versões anteriores
 
-### Boas práticas implementadas:
-- ✅ Multi-stage build (imagem menor)
-- ✅ Node Alpine (imagem leve e segura)
-- ✅ Nginx com headers de segurança
-- ✅ Health checks configurados
-- ✅ Restart automático
-- ✅ Network isolada
+### Scheduled Tasks
+- Configure backups automáticos em **"Scheduled Tasks"**
 
-## 📈 Otimizações
-
-### Reduzir tamanho das imagens
-Já implementado com:
-- Alpine Linux (base mínima)
-- Multi-stage build
-- `npm ci --only=production`
-
-### Cache de build
-Docker usa cache de layers automaticamente.
+### Resource Limits
+- Configure limites de CPU/RAM em **"Resource Limits"**
 
 ## 🎉 Pronto!
 
-Sua aplicação está completamente dockerizada e pronta para deploy no Coolify!
+Sua aplicação está no ar com:
+- ✅ Frontend servido pelo Nginx (porta 80)
+- ✅ Backend rodando no Node.js (porta 3000)
+- ✅ Banco de dados SQLite persistente
+- ✅ SSL automático (se configurou domínio)
+- ✅ Deploy automático via webhook
 
-**Próximos passos:**
-1. Teste localmente com `docker-compose up`
-2. Push para GitHub
-3. Configure no Coolify como "Docker Compose"
-4. Deploy! 🚀
+## 📚 Próximos Passos
+
+1. Configure um domínio personalizado
+2. Configure webhook para deploy automático
+3. Configure backup do banco de dados
+4. Monitore recursos em **"Metrics"**
+
+---
+
+**Dúvidas?** Verifique os logs em **"Logs"** ou teste localmente com:
+```bash
+docker-compose up
+```
