@@ -43,6 +43,11 @@ Book.belongsTo(User);
 
 User.belongsToMany(User, { as: 'Friends', through: Friendship, foreignKey: 'userId', otherKey: 'friendId' });
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Routes
 app.use('/api', routes);
 

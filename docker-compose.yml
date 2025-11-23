@@ -1,14 +1,16 @@
 version: '3.8'
 
 services:
-  # Backend API
-  backend:
+  app:
     build:
-      context: ./server
+      context: .
       dockerfile: Dockerfile
-    container_name: 100spoiler-backend
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:3000}
+    container_name: 100spoiler-app
     restart: unless-stopped
     expose:
+      - "80"
       - "3000"
     environment:
       - NODE_ENV=production
@@ -16,41 +18,13 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
     volumes:
-      # Persistir banco de dados SQLite - montar diretório ao invés de arquivo
-      - sqlite-data:/app
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  # Frontend
-  frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        - VITE_API_URL=${VITE_API_URL:-http://localhost:3000}
-    container_name: 100spoiler-frontend
-    restart: unless-stopped
-    expose:
-      - "80"
-    depends_on:
-      - backend
-    networks:
-      - app-network
+      # Persistir banco de dados SQLite
+      - sqlite-data:/app/server
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
       interval: 30s
       timeout: 10s
       retries: 3
-
-networks:
-  app-network:
-    driver: bridge
 
 volumes:
   sqlite-data:
