@@ -3,10 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const sequelize = require('./database');
-const User = require('./models/User');
-const Book = require('./models/Book');
-const Friendship = require('./models/Friendship');
+const prisma = require('./database');
 const routes = require('./routes');
 
 const app = express();
@@ -37,26 +34,15 @@ app.use(limiter);
 
 app.use(express.json({ limit: '50mb' })); // Increased limit for base64 images
 
-// Associations
-User.hasMany(Book);
-Book.belongsTo(User);
-
-User.belongsToMany(User, { as: 'Friends', through: Friendship, foreignKey: 'userId', otherKey: 'friendId' });
-
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Routes
+// Mount API routes
 app.use('/api', routes);
 
-// Sync database and start server
-sequelize.sync({ alter: true }).then(() => {
-  console.log('Database synced');
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
-}).catch(err => {
-  console.error('Unable to sync database:', err);
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });

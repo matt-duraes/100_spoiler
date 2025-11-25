@@ -1,10 +1,5 @@
-const { Sequelize } = require('sequelize');
-const path = require('path');
+const { PrismaClient } = require('@prisma/client');
 
-const sequelize = new Sequelize({
-  dialect: 'sqlite',
-  storage: path.join(__dirname, 'database.sqlite'),
-  logging: false
-});
+const prisma = new PrismaClient();
 
-module.exports = sequelize;
+module.exports = prisma;

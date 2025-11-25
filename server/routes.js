@@ -2,8 +2,7 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
-const User = require('./models/User');
-const Book = require('./models/Book');
+const prisma = require('./database');
 const router = express.Router();
 
 const SECRET_KEY = process.env.JWT_SECRET || 'your-secret-key-change-this';
@@ -46,11 +45,13 @@ router.post('/auth/register', [
     let isUnique = false;
     while (!isUnique) {
       friendCode = generateFriendCode();
-      const existing = await User.findOne({ where: { friendCode } });
+      const existing = await prisma.user.findUnique({ where: { friendCode } });
       if (!existing) isUnique = true;
     }
 
-    const user = await User.create({ name, email, password: hashedPassword, friendCode });
+    const user = await prisma.user.create({
+      data: { name, email, password: hashedPassword, friendCode }
+    });
     res.status(201).json({ message: 'Usuário criado com sucesso' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -68,7 +69,7 @@ router.post('/auth/login', [
 
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email } });
     if (!user) return res.status(400).json({ error: 'Usuário não encontrado' });
 
     const validPassword = await bcrypt.compare(password, user.password);
@@ -93,13 +94,21 @@ router.post('/auth/login', [
 router.post('/friends/add', authenticateToken, async (req, res) => {
   try {
     const { friendCode } = req.body;
-    const friend = await User.findOne({ where: { friendCode } });
+    const friend = await prisma.user.findUnique({ where: { friendCode } });
     
     if (!friend) return res.status(404).json({ error: 'Usuário não encontrado com este código' });
     if (friend.id === req.user.id) return res.status(400).json({ error: 'Você não pode adicionar a si mesmo' });
 
-    const user = await User.findByPk(req.user.id);
-    await user.addFriend(friend);
+    // Add friend (bidirectional or unidirectional depending on logic, assuming uni for now based on 'addFriend')
+    // Prisma many-to-many requires connecting
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        friends: {
+          connect: { id: friend.id }
+        }
+      }
+    });
     
     res.json({ message: 'Amigo adicionado com sucesso', friend: { id: friend.id, name: friend.name } });
   } catch (error) {
@@ -109,14 +118,15 @@ router.post('/friends/add', authenticateToken, async (req, res) => {
 
 router.get('/friends', authenticateToken, async (req, res) => {
   try {
-    const user = await User.findByPk(req.user.id, {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
       include: {
-        model: User,
-        as: 'Friends',
-        attributes: ['id', 'name', 'friendCode']
+        friends: {
+          select: { id: true, name: true, friendCode: true }
+        }
       }
     });
-    res.json(user.Friends);
+    res.json(user.friends);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -125,14 +135,21 @@ router.get('/friends', authenticateToken, async (req, res) => {
 router.get('/users/:id/books', authenticateToken, async (req, res) => {
   try {
     // Check if they are friends
-    const user = await User.findByPk(req.user.id);
-    const friends = await user.getFriends({ where: { id: req.params.id } });
+    // Check if they are friends
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: {
+        friends: {
+          where: { id: parseInt(req.params.id) }
+        }
+      }
+    });
     
-    if (friends.length === 0) {
+    if (!user || user.friends.length === 0) {
       return res.status(403).json({ error: 'Você precisa ser amigo para ver os livros' });
     }
 
-    const books = await Book.findAll({ where: { UserId: req.params.id } });
+    const books = await prisma.book.findMany({ where: { userId: parseInt(req.params.id) } });
     res.json(books);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -142,7 +159,7 @@ router.get('/users/:id/books', authenticateToken, async (req, res) => {
 // Book Routes
 router.get('/books', authenticateToken, async (req, res) => {
   try {
-    const books = await Book.findAll({ where: { UserId: req.user.id } });
+    const books = await prisma.book.findMany({ where: { userId: req.user.id } });
     res.json(books);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -151,7 +168,9 @@ router.get('/books', authenticateToken, async (req, res) => {
 
 router.post('/books', authenticateToken, async (req, res) => {
   try {
-    const book = await Book.create({ ...req.body, UserId: req.user.id });
+    const book = await prisma.book.create({
+      data: { ...req.body, userId: req.user.id }
+    });
     res.status(201).json(book);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -160,11 +179,14 @@ router.post('/books', authenticateToken, async (req, res) => {
 
 router.put('/books/:id', authenticateToken, async (req, res) => {
   try {
-    const book = await Book.findOne({ where: { id: req.params.id, UserId: req.user.id } });
+    const book = await prisma.book.findFirst({ where: { id: parseInt(req.params.id), userId: req.user.id } });
     if (!book) return res.status(404).json({ error: 'Livro não encontrado' });
     
-    await book.update(req.body);
-    res.json(book);
+    const updatedBook = await prisma.book.update({
+      where: { id: parseInt(req.params.id) },
+      data: req.body
+    });
+    res.json(updatedBook);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -172,10 +194,10 @@ router.put('/books/:id', authenticateToken, async (req, res) => {
 
 router.delete('/books/:id', authenticateToken, async (req, res) => {
   try {
-    const book = await Book.findOne({ where: { id: req.params.id, UserId: req.user.id } });
+    const book = await prisma.book.findFirst({ where: { id: parseInt(req.params.id), userId: req.user.id } });
     if (!book) return res.status(404).json({ error: 'Livro não encontrado' });
     
-    await book.destroy();
+    await prisma.book.delete({ where: { id: parseInt(req.params.id) } });
     res.json({ message: 'Livro excluído' });
   } catch (error) {
     res.status(500).json({ error: error.message });
