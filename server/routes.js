@@ -39,6 +39,13 @@ router.post('/auth/register', [
 
   try {
     const { name, email, password } = req.body;
+    
+    // Check if email already exists
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Este email já está cadastrado' });
+    }
+    
     const hashedPassword = await bcrypt.hash(password, 10);
     
     let friendCode;
@@ -54,7 +61,8 @@ router.post('/auth/register', [
     });
     res.status(201).json({ message: 'Usuário criado com sucesso' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Erro ao criar usuário. Tente novamente.' });
   }
 });
 
@@ -86,7 +94,8 @@ router.post('/auth/login', [
       } 
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Erro ao fazer login. Tente novamente.' });
   }
 });
 
@@ -112,7 +121,8 @@ router.post('/friends/add', authenticateToken, async (req, res) => {
     
     res.json({ message: 'Amigo adicionado com sucesso', friend: { id: friend.id, name: friend.name } });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Add friend error:', error);
+    res.status(500).json({ error: 'Erro ao adicionar amigo. Tente novamente.' });
   }
 });
 
@@ -128,7 +138,8 @@ router.get('/friends', authenticateToken, async (req, res) => {
     });
     res.json(user.friends);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Get friends error:', error);
+    res.status(500).json({ error: 'Erro ao buscar amigos. Tente novamente.' });
   }
 });
 
@@ -152,7 +163,8 @@ router.get('/users/:id/books', authenticateToken, async (req, res) => {
     const books = await prisma.book.findMany({ where: { userId: parseInt(req.params.id) } });
     res.json(books);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Get friend books error:', error);
+    res.status(500).json({ error: 'Erro ao buscar livros do amigo. Tente novamente.' });
   }
 });
 
@@ -162,7 +174,8 @@ router.get('/books', authenticateToken, async (req, res) => {
     const books = await prisma.book.findMany({ where: { userId: req.user.id } });
     res.json(books);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Get books error:', error);
+    res.status(500).json({ error: 'Erro ao buscar livros. Tente novamente.' });
   }
 });
 
@@ -173,7 +186,8 @@ router.post('/books', authenticateToken, async (req, res) => {
     });
     res.status(201).json(book);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Create book error:', error);
+    res.status(500).json({ error: 'Erro ao criar livro. Tente novamente.' });
   }
 });
 
@@ -188,7 +202,8 @@ router.put('/books/:id', authenticateToken, async (req, res) => {
     });
     res.json(updatedBook);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Update book error:', error);
+    res.status(500).json({ error: 'Erro ao atualizar livro. Tente novamente.' });
   }
 });
 
@@ -200,7 +215,8 @@ router.delete('/books/:id', authenticateToken, async (req, res) => {
     await prisma.book.delete({ where: { id: parseInt(req.params.id) } });
     res.json({ message: 'Livro excluído' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Delete book error:', error);
+    res.status(500).json({ error: 'Erro ao excluir livro. Tente novamente.' });
   }
 });
 

@@ -26,7 +26,7 @@ model Book {
   cover     String   @default("")
   status    String   @default("to-read")
   tags      Json     @default("[]")
-  addedAt   String
+  addedAt   String?
   userId    Int
   user      User     @relation(fields: [userId], references: [id])
 }
