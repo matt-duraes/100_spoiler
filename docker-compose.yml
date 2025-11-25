@@ -2,21 +2,21 @@ services:
   web:
     build: .
     ports:
-      - "5173:5173"
+      - "5177:5177"
     volumes:
       - .:/app
       - /app/node_modules
     environment:
-      - VITE_API_URL=http://localhost:3000
+      - VITE_API_URL=http://localhost:3007
 
   server:
     build: ./server
     ports:
-      - "3000:3000"
+      - "3007:3007"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/spoilerdb
       - JWT_SECRET=your-secret-key-change-this
-      - PORT=3000
+      - PORT=3007
     depends_on:
       - postgres
     volumes:
@@ -30,7 +30,7 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=spoilerdb
     ports:
-      - "5432:5432"
+      - "5437:5437"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
